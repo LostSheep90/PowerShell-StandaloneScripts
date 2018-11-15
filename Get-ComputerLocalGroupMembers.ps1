@@ -34,4 +34,5 @@ foreach ($Member in $WMIClassMembers) {
 }
 
 #print the list of groups and group members
+#test
 $ListofGroupsandMembers
