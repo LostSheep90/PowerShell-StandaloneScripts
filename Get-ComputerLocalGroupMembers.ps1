@@ -25,7 +25,7 @@ foreach ($Member in $WMIClassMembers) {
 	$LocalGroupName = ($LocalGroupName).split('=')[1]
 	$LocalGroupName = ($LocalGroupName).Trim('"')
 
-	$ListofGroupsandMembers += $member | Select-Object (
+	$ListofGroupsandMembers += $Member | Select-Object (
 		@{ Label="Computer"; Expression={$_.PSComputerName} },
 		@{ Label="LocalGroupName"; Expression={$LocalGroupName} },
 		@{ Label="MemberName"; Expression={$MemberName} }
