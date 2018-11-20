@@ -14,3 +14,22 @@ https://github.com/jfelpel/PowerShell-StandaloneScripts
 .Example
 
 #>
+
+Param(
+	[parameter(Mandatory=$true)]
+	[String]
+    $NewVMName,
+    [parameter(Mandatory=$false)]
+	[String]
+    $Purpose = 'Test',
+    [parameter(Mandatory=$true)]
+	[String]
+    $NewVMIP,
+    [parameter(Mandatory=$true)]
+	[String]
+    $NewVMVLAN,
+    [parameter(Mandatory=$false)]
+	[String]
+    $NewVMEnvironment = 'Test'
+)
+
