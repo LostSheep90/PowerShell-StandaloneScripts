@@ -21,7 +21,7 @@ function Get-OulookFolderSize {
    Return $Size
 }
 
-function Get-OutlookFolderSubFolders {
+function Get-OutlookFolderSubFoldersandInfo {
    param (
       $Subfolder
    )
@@ -42,7 +42,7 @@ function Get-OutlookFolderSubFolders {
 
    If($Subfolder.folders.count -gt 0) {
       foreach ($Folder in $Subfolder.Folders) {
-         Get-OutlookFolderSubFolders($Folder)
+         Get-OutlookFolderSubFoldersandInfo($Folder)
       }
    }
    
@@ -50,11 +50,12 @@ function Get-OutlookFolderSubFolders {
 
 foreach ($Subfolder in $OutlookRootFolder.Folders) {
    # Get-OulookFolderInfo ($Subfolder)
-   If($Subfolder.folders.count -gt 0) {
-      Get-OutlookFolderSubFolders($Subfolder)
-   } else {
-      Write-Host $Subfolder.Name
-   }
+   Get-OutlookFolderSubFoldersandInfo($Subfolder)
+   # If($Subfolder.folders.count -gt 0) {
+   #    Get-OutlookFolderSubFolders($Subfolder)
+   # } else {
+   #    Write-Host $Subfolder.Name
+   # }
 }
 
 $Global:ListofOutlookFolderInformation | Export-Excel -Now -Show -AutoSize
