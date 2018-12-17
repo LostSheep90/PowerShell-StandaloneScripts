@@ -1,3 +1,12 @@
+<#
+todo:
+add export to excel option. toggle option with true/false command line switch
+
+add option to output total size of folders. toggle option with true/false command line switch
+
+get debugging and verbose working. 
+#>
+
 $ExportPath = [Environment]::GetFolderPath("Desktop") + "\OutlookFolderInfo.csv"
 $OutlookObject = new-object -comobject outlook.application
 $OutlookObjectNamespace = $OutlookObject.GetNamespace("MAPI")
