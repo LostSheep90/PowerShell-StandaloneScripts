@@ -27,13 +27,14 @@ function Get-OutlookFolderSubFoldersandInfo {
       $Subfolder
    )
    
-   $Size = Get-OulookFolderSize ($Subfolder)
+   # $Size = Get-OulookFolderSize ($Subfolder)
    # Write-Debug $Subfolder.Name " - " $Subfolder.Items.Count " - " $Size
 
    $Global:ListofOutlookFolderInformation += $Subfolder | Select-Object (
       @{ Label="Folder"; Expression={$($Subfolder.name)} },
+      @{ Label="SubfolderCount"; Expression={$($Subfolder.Folders.Count)} },
       @{ Label="ItemCount"; Expression={$($Subfolder.Items.Count)} },
-      @{ Label="SizeMB"; Expression={"{0:n1}" -f $size} },
+      # @{ Label="SizeMB"; Expression={"{0:n1}" -f $size} },
       @{ Label="FullPath"; Expression={$($Subfolder.FullFolderPath)} }
    )
 
