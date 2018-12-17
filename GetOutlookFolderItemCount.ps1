@@ -1,3 +1,4 @@
+$ExportPath = [Environment]::GetFolderPath("Desktop") + "\OutlookFolderInfo.csv"
 $OutlookObject = new-object -comobject outlook.application
 $OutlookObjectNamespace = $OutlookObject.GetNamespace("MAPI")
 $OutlookRootFolder = $OutlookObjectNamespace.GetDefaultFolder(6).Parent
@@ -17,7 +18,7 @@ function Get-OulookFolderSize {
          Write-Progress -Activity ("Toting size of " + $foldername + " folder.") -Status ("Totaling size of " + $Itemcount + " of " + $folderItemCount + " emails.") -PercentComplete ($itemcount/$folderItemCount*100)
       }
    }
-   $Size = $Size/1024
+   $Size = $Size/1MB
    Return $Size
 }
 
@@ -27,12 +28,12 @@ function Get-OutlookFolderSubFoldersandInfo {
    )
    
    $Size = Get-OulookFolderSize ($Subfolder)
-   # Write-Host $Subfolder.Name " - " $Subfolder.Items.Count " - " $Size
+   # Write-Debug $Subfolder.Name " - " $Subfolder.Items.Count " - " $Size
 
    $Global:ListofOutlookFolderInformation += $Subfolder | Select-Object (
       @{ Label="Folder"; Expression={$($Subfolder.name)} },
       @{ Label="ItemCount"; Expression={$($Subfolder.Items.Count)} },
-      @{ Label="SizeKB"; Expression={"{0:n1}" -f $size} },
+      @{ Label="SizeMB"; Expression={"{0:n1}" -f $size} },
       @{ Label="FullPath"; Expression={$($Subfolder.FullFolderPath)} }
    )
 
@@ -49,13 +50,9 @@ function Get-OutlookFolderSubFoldersandInfo {
 }
 
 foreach ($Subfolder in $OutlookRootFolder.Folders) {
-   # Get-OulookFolderInfo ($Subfolder)
    Get-OutlookFolderSubFoldersandInfo($Subfolder)
-   # If($Subfolder.folders.count -gt 0) {
-   #    Get-OutlookFolderSubFolders($Subfolder)
-   # } else {
-   #    Write-Host $Subfolder.Name
-   # }
 }
 
-$Global:ListofOutlookFolderInformation | Export-Excel -Now -Show -AutoSize
+# $Global:ListofOutlookFolderInformation | Export-Excel -Now -Show -AutoSize
+$Global:ListofOutlookFolderInformation | Export-Csv -Path $ExportPath -NoTypeInformation
+Invoke-Expression $ExportPath
