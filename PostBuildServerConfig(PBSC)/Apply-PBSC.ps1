@@ -35,16 +35,16 @@ Param(
 
 #Set Config File Path Variables
 [xml]$XMLConfigFile = Get-Content $XMLConfigFilePath
+$TargetOU = $XMLConfigFile.PBSC_Config.ServerADOU.name
+$Hostname = $env:computername
+# $TargetOU = "CN=Computers,DC=donegalgroup,DC=com"
+# $Hostname = 'JF-DIG-LAPTOP1'
+$ServerADObject = Get-ADComputer -Filter {name -eq $Hostname} -Properties *
 
 <# Move AD Computer object to correct AD Group
-	- Check the location of the servers AD object
+	- Check if the AD object is not in the correct location.
 		- If not in the correct location, move the server object
 #>
-$TargetOU = $XMLConfigFile.PBSC_Config.ServerADOU.name
-# $TargetOU = "CN=Computers,DC=donegalgroup,DC=com"
-# $Hostname = $env:computername
-$Hostname = 'JF-DIG-LAPTOP1'
-$ServerADObject = Get-ADComputer -Filter {name -eq $Hostname} -Properties *
 if ($ServerADObject.DistinguishedName -ne "CN=$Hostname,$TargetOU") {
 	Write-Host "Server AD object in wrong location. Attempting to move to correct location"
 	try {
@@ -60,22 +60,27 @@ if ($ServerADObject.DistinguishedName -ne "CN=$Hostname,$TargetOU") {
 }
 Write-Host "-------"
 
-<# Local Group Changes (what to add to which local group)
-	- foreach group, add specified users
+<# Local Group Changes
+	- foreach group
+		- Check if user/group is already a member
+			-if not, add to local group
 #>
-Write-Host 'Attempting to add items to server local groups.'
 foreach ($LocalGroup in $XMLConfigFile.PBSC_Config.LocalGroupChanges.localgroup) {
 	# $LocalGroup.name
 	foreach ($ItemtoAdd in $LocalGroup.AddItem.name) {
 		# $ItemtoAdd
-		try {
-			Add-LocalGroupMember -Group $LocalGroup.name -Member $ItemtoAdd -Confirm:$false -ErrorAction Stop
-			write-host "$ItemtoAdd has been added to $($LocalGroup.name)." -ForegroundColor Green
-		}
-		catch {
-			Write-Host "Unable to add $ItemtoAdd to local group $($LocalGroup.name)." -ForegroundColor Red
-			Write-Host $_.Exception.Message -ForegroundColor Red
-			Write-Host $_.Exception.ItemName -ForegroundColor Red
+		if (!(Get-LocalGroupMember -Name $LocalGroup.name -Member $ItemtoAdd -ErrorAction SilentlyContinue )) {
+			try {
+				Add-LocalGroupMember -Group $LocalGroup.name -Member $ItemtoAdd -Confirm:$false -ErrorAction Stop
+				write-host "$ItemtoAdd has been added to $($LocalGroup.name)." -ForegroundColor Green
+			}
+			catch {
+				Write-Host "Unable to add $ItemtoAdd to local group $($LocalGroup.name)." -ForegroundColor Red
+				Write-Host $_.Exception.Message -ForegroundColor Red
+				Write-Host $_.Exception.ItemName -ForegroundColor Red
+			}	
+		}elseif (Get-LocalGroupMember -Name $LocalGroup.name -Member $ItemtoAdd ) {
+			Write-Host "$ItemtoAdd is already a member of $($LocalGroup.name)."
 		}
 	}
 }
@@ -84,14 +89,18 @@ Write-Host "-------"
 <# Share Creation (share name and location, share permissions, security permissions)
 	- Check if directory exists
 		- If not, create it
-	- Create Fileshare, permissions while creating
-	- add items to NTFS ACL
+	- Check for SMB share exists
+		- If not, create it
+	- Check if each Share Permissions is already granted
+		- If not, grant it
+	- Check if NTFS permissions have been added
+		- if not, add items to NTFS ACL
 #>
 foreach ($FileShare in $XMLConfigFile.PBSC_Config.NetworkFileShares.FileShare) {
 	# $FileShare.name
 	# $FileShare.path
+	#Check if Directory exists. If not, create it.
 	if (!(Test-Path -Path $FileShare.path)) {
-		Write-Host "$($FileShare.path) does not exist. Attempting to create directory."
 		try {
 			New-Item -ItemType Directory -Path $FileShare.path -ErrorAction Stop | Out-Null
 			Write-Host "$($FileShare.path) has been created." -ForegroundColor Green
@@ -104,13 +113,13 @@ foreach ($FileShare in $XMLConfigFile.PBSC_Config.NetworkFileShares.FileShare) {
 	} elseif (Test-Path -Path $FileShare.path) {
 		Write-Host "$($FileShare.path) already exists."
 	}
-	Write-Host "Checking for SMBShare."
+
+	#Check if SMB Share exists. If not, create it.
 	try {
 		Get-SmbShare -Name $FileShare.name -ErrorAction Stop | Out-Null
 		Write-Host "The SMB Share $($FileShare.name) already exists."
 	}
 	catch {
-		Write-Host "SMB share $($FileShare.name) does not exist. Attempting to create share."
 		try {
 			New-SmbShare -Name $FileShare.name -Path $FileShare.path -ErrorAction Stop | Out-Null
 			Write-host "SMB share $($FileShare.name) has been created." -ForegroundColor Green
@@ -121,29 +130,43 @@ foreach ($FileShare in $XMLConfigFile.PBSC_Config.NetworkFileShares.FileShare) {
 			Write-Host $_.Exception.ItemName -ForegroundColor Red
 		}
 	}
+
+	#Check if Share Permissions exist. If not, add permissions. If incorrect, readd permission.
 	foreach ($SharePermission in $Fileshare.SharePermissions.additem) {
 		# $SharePermission.name
 		# $SharePermission.permissionlevel
-		try {
-			Grant-SmbShareAccess -Name $FileShare.name -AccountName $SharePermission.name -AccessRight $SharePermission.permissionlevel -Confirm:$false -ErrorAction Stop | Out-Null
-			Write-Host "$($SharePermission.permissionlevel) access has been granted to $($SharePermission.name) on $($FileShare.name)." -ForegroundColor Green
-		}
-		catch {
-			Write-Host "Unable to grant $($SharePermission.permissionlevel) access for $($SharePermission.name) to $($FileShare.name)." -ForegroundColor Red
-			Write-Host $_.Exception.Message -ForegroundColor Red
-			Write-Host $_.Exception.ItemName -ForegroundColor Red
+		$SMBShareAccess = Get-SmbShareAccess -Name $FileShare.name | Where-Object {$_.AccountName -eq $SharePermission.name }
+		if ($SMBShareAccess.AccessRight -ne $SharePermission.permissionlevel) {
+			try {
+				Grant-SmbShareAccess -Name $FileShare.name -AccountName $SharePermission.name -AccessRight $SharePermission.permissionlevel -Confirm:$false -ErrorAction Stop | Out-Null
+				Write-Host "$($SharePermission.permissionlevel) access has been granted to $($SharePermission.name) on $($FileShare.name)." -ForegroundColor Green
+			}
+			catch {
+				Write-Host "Unable to grant $($SharePermission.permissionlevel) access for $($SharePermission.name) to $($FileShare.name)." -ForegroundColor Red
+				Write-Host $_.Exception.Message -ForegroundColor Red
+				Write-Host $_.Exception.ItemName -ForegroundColor Red
+			}
+		} elseif ($SMBShareAccess.AccessRight -eq $SharePermission.permissionlevel) {
+			Write-Host "$($SharePermission.name) already has $($SharePermission.permissionlevel) access to $($FileShare.name)."
 		}
 	}
+
+	#Check if NTFS ACL exists. If not, add it. If incorrect, readd permission.
 	foreach ($ACLChange in $FileShare.ACLChanges.additem) {
 		# $ACLChange.name
 		# $ACLChange.PermissionLevel
 		# $FileShare.path
 		try {
 			$FolderACL = Get-Item -Path $FileShare.path -ErrorAction Stop | get-acl -ErrorAction Stop
-			$NewACL = New-Object  system.security.accesscontrol.filesystemaccessrule $ACLChange.name,$ACLChange.PermissionLevel,'ContainerInherit, ObjectInherit','None','Allow'  -ErrorAction Stop
-			$FolderACL.SetAccessRule($NewACL)
-			Set-Acl $FileShare.path $FolderACL -ErrorAction Stop
-			Write-Host "$($ACLChange.PermissionLevel) access has been granted to $($ACLChange.name) for $($FileShare.path). " -ForegroundColor Green
+			$FolderACLCheck = $FolderACL.access | Where-Object {$_.IdentityReference -eq $ACLChange.name}
+			if (!($FolderACLCheck.FileSystemRights -like "$($ACLChange.PermissionLevel)*")) {
+				$NewACL = New-Object  system.security.accesscontrol.filesystemaccessrule $ACLChange.name,$ACLChange.PermissionLevel,'ContainerInherit, ObjectInherit','None','Allow'  -ErrorAction Stop
+				$FolderACL.SetAccessRule($NewACL)
+				Set-Acl $FileShare.path $FolderACL -ErrorAction Stop
+				Write-Host "$($ACLChange.PermissionLevel) access has been granted to $($ACLChange.name) for $($FileShare.path). " -ForegroundColor Green
+			} elseif ($FolderACLCheck.FileSystemRights -like "$($ACLChange.PermissionLevel)*") {
+				Write-Host "$($ACLChange.name) already has $($ACLChange.PermissionLevel) access to $($FileShare.path)."
+			}
 		}
 		catch {
 			Write-Host "Unable to grant $($ACLChange.PermissionLevel) access to $($ACLChange.name) for $($FileShare.path)." -ForegroundColor Red
