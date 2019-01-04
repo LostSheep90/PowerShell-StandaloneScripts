@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PBSC_Config>
+
+	<LocalGroupChanges>
+		<LocalGroup name="Administrators"><!--Copy the "LocalGroup" block to make modifications to additional local groups. -->
+			<AddItem name="Domain\ADUser"/><!--For each item to add to a local group, simply create a new "AddItem" line.--> 
+			<AddItem name="Domain\ADGroup"/>
+			<AddItem name="LocalUser"/>
+		</LocalGroup>
+	</LocalGroupChanges>
+	
+	<NetworkFileShares>
+		<FileShare name="ShareName" path="SharePath"><!-- -->
+			<SharePermissions><!-- -->
+				<AddItem name="Everyone" permissionlevel="Full" /><!-- -->
+			</SharePermissions>
+			<ACLChanges><!-- -->
+				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Log Share-RO" permissionlevel="Read"/><!-- -->
+				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Server Admins" permissionlevel="Modify"/>
+			</ACLChanges>
+		</FileShare>
+		<FileShare name="tomcat" path="D:\tomcat">
+			<SharePermissions>
+				<AddItem name="Everyone" permissionlevel="Full" />
+			</SharePermissions>
+			<ACLChanges>
+				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Log Share-RO" permissionlevel="Read"/>
+				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Server Admins" permissionlevel="Modify"/>
+			</ACLChanges>		
+		</FileShare>
+	</NetworkFileShares>
+	
+</PBSC_Config>
