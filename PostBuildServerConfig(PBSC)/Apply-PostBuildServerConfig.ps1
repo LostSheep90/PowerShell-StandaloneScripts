@@ -153,3 +153,5 @@ foreach ($FileShare in $XMLConfigFile.PBSC_Config.NetworkFileShares.FileShare) {
 <# Config Changes
 	- Unused portion - planned for future use
 #>
+
+Pause
