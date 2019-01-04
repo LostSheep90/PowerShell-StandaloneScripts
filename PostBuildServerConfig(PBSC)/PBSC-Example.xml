@@ -10,23 +10,15 @@
 	</LocalGroupChanges>
 	
 	<NetworkFileShares>
-		<FileShare name="ShareName" path="SharePath"><!-- -->
-			<SharePermissions><!-- -->
-				<AddItem name="Everyone" permissionlevel="Full" /><!-- -->
+		<FileShare name="ShareName" path="SharePath"><!--Copy the "FileShare" block to add additional file shares. -->
+			<SharePermissions><!--This block will set the "Share Permissions" on the new share. -->
+				<AddItem name="Everyone" permissionlevel="Full" /><!--Copy this line and change the name and permissionlevel for any additional changes. -->
 			</SharePermissions>
-			<ACLChanges><!-- -->
-				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Log Share-RO" permissionlevel="Read"/><!-- -->
-				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Server Admins" permissionlevel="Modify"/>
+			<ACLChanges><!--This block will add items to the NTFS ACL of the share object -->
+				<AddItem name="Domain\ADGroup" permissionlevel="Read"/><!--Copy this line and change the name and permissions level for any additional changes. -->
+				<AddItem name="Domain\ADGroup" permissionlevel="Modify"/>
+                <AddItem name="Domain\ADUser" permissionlevel="Modify"/>
 			</ACLChanges>
-		</FileShare>
-		<FileShare name="tomcat" path="D:\tomcat">
-			<SharePermissions>
-				<AddItem name="Everyone" permissionlevel="Full" />
-			</SharePermissions>
-			<ACLChanges>
-				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Log Share-RO" permissionlevel="Read"/>
-				<AddItem name="marietta\DIG-ALL-App-PC-Dev-Server Admins" permissionlevel="Modify"/>
-			</ACLChanges>		
 		</FileShare>
 	</NetworkFileShares>
 	
