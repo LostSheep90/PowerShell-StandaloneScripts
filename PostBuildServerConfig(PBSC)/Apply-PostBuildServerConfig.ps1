@@ -4,28 +4,29 @@
 Used to complete basic post build configuration of new servers.
 
 .Description
-Apply-PostBuildServerConfig
+Apply-PostBuildServerConfig will pull a standard configuration from an XML config file and apply that config to a new server.
+In its current state, the script can only add new items to Local Groups and Create SMB Shares.
+When creating SMB Shares, the script will verify the local directoy exists or create it if it does not. It will then create the SMB Share, and check for and add/correct and missing or incorrect Share level or NTFS level permissions.
 
 .NOTES
 Written by Jeremy Felpel
 
 .Example
+Apply-PostBuildServerConfig -XMLConfigFilePath 'XMLConfigFilePath\XMLConfigFile.xml'
 
 #>
 
 Param(
-	# [parameter(Mandatory=$true)]
-	# [ValidateScript({
-    #     if (Test-Path $_ -PathType 'Container') {
-    #         $true
-    #     }
-    #     else {
-    #         Throw "$_ is not a valid root path. Please enter a path that is accessible from this location and by the logged in user."
-    #     }
-    # })]
-	# [String]
-	# $ConfigDirectoryPath
 	[parameter(Mandatory=$true)]
+	[ValidateScript({
+        # if (Test-Path $_ -PathType 'Leaf') {
+		if ([IO.Path]::GetExtension($_) -eq '.xml') {
+            $true
+        }
+        else {
+            Throw "$_ is not an XML file. Please enter the full path to the XML config file that included the name of the config file."
+        }
+    })]
 	[String]
 	$XMLConfigFilePath
 )
